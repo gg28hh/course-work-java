@@ -1,16 +1,31 @@
 package com.example.cw.services;
 
 import com.example.cw.Query;
-import org.springframework.http.HttpStatus;
+import com.example.cw.product.ProductRepository;
+import com.example.cw.product.model.Product;
+import com.example.cw.product.model.ProductDTO;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 
-@Service
-public class GetProductService implements Query<Void, String> {
+import java.util.Optional;
 
+@Service
+public class GetProductService implements Query<Integer, ProductDTO> {
+
+    private final ProductRepository productRepository;
+
+    public GetProductService(ProductRepository productRepository) {
+        this.productRepository = productRepository;
+    }
 
     @Override
-    public ResponseEntity<String> execute(Void input) {
-        return ResponseEntity.status(HttpStatus.OK).body("Got product!");
+    public ResponseEntity<ProductDTO> execute(Integer input) {
+        Optional<Product> productOptional = productRepository.findById(input);
+
+       if(productOptional.isPresent()){
+           return ResponseEntity.ok(new ProductDTO(productOptional.get()));
+        }
+
+        return null;
     }
 }
