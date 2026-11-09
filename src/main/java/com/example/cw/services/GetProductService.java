@@ -1,6 +1,7 @@
 package com.example.cw.services;
 
 import com.example.cw.Query;
+import com.example.cw.exceptions.ProductNotFoundException;
 import com.example.cw.product.ProductRepository;
 import com.example.cw.product.model.Product;
 import com.example.cw.product.model.ProductDTO;
@@ -26,6 +27,6 @@ public class GetProductService implements Query<Integer, ProductDTO> {
            return ResponseEntity.ok(new ProductDTO(productOptional.get()));
         }
 
-        return null;
+        throw new ProductNotFoundException();
     }
 }

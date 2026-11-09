@@ -5,6 +5,7 @@ import com.example.cw.product.model.UpdateProductCommand;
 import com.example.cw.services.*;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import jakarta.validation.Valid;
 
 import java.util.List;
 
@@ -30,10 +31,21 @@ public class ProductController {
     }
 
 
-
     @PostMapping("/product")
-    public ResponseEntity<ProductDTO> createProduct(@RequestBody Product product) {
+    public ResponseEntity<ProductDTO> createProduct(
+            @Valid @RequestBody Product product) {
+
         return createProductService.execute(product);
+    }
+
+    @PutMapping("/product/{id}")
+    public ResponseEntity<ProductDTO> updateProduct(
+            @PathVariable Integer id,
+            @Valid @RequestBody Product product) {
+
+        return updateProductService.execute(
+                new UpdateProductCommand(id, product)
+        );
     }
 
     @GetMapping("/products")
@@ -48,16 +60,11 @@ public class ProductController {
     }
 
 
-    @PutMapping("/product/{id}")
-    public ResponseEntity<ProductDTO> updateProduct(@PathVariable Integer id, @RequestBody Product product)
-    {
-        return updateProductService.execute(new UpdateProductCommand(id, product));
-    }
-
-
     @DeleteMapping("/product/{id}")
     public ResponseEntity<Void> deleteProduct(@PathVariable Integer id)
     {
         return deleteProductService.execute(id);
     }
+
 }
+
