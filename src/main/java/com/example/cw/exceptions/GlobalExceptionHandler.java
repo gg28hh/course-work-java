@@ -9,6 +9,7 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.bind.annotation.ResponseStatus;
 
+
 @ControllerAdvice
 public class GlobalExceptionHandler {
 
@@ -57,5 +58,21 @@ public class GlobalExceptionHandler {
                         .next()
                         .getMessage()
         );
+    }
+
+    @ExceptionHandler(CategoryNotFoundException.class)
+    @ResponseBody
+    @ResponseStatus(HttpStatus.NOT_FOUND)
+    public ErrorResponse handleCategoryNotFound(
+            CategoryNotFoundException exception) {
+        return new ErrorResponse(exception.getMessage());
+    }
+
+    @ExceptionHandler(CategoryAlreadyExistsException.class)
+    @ResponseBody
+    @ResponseStatus(HttpStatus.CONFLICT)
+    public ErrorResponse handleCategoryAlreadyExists(
+            CategoryAlreadyExistsException exception) {
+        return new ErrorResponse(exception.getMessage());
     }
 }

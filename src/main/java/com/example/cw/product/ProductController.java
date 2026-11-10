@@ -2,7 +2,7 @@ package com.example.cw.product;
 import com.example.cw.product.model.Product;
 import com.example.cw.product.model.ProductDTO;
 import com.example.cw.product.model.UpdateProductCommand;
-import com.example.cw.services.*;
+import com.example.cw.product.services.*;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import jakarta.validation.Valid;
