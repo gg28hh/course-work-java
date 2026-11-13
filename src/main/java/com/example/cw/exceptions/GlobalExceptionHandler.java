@@ -75,4 +75,13 @@ public class GlobalExceptionHandler {
             CategoryAlreadyExistsException exception) {
         return new ErrorResponse(exception.getMessage());
     }
+
+    @ExceptionHandler(IllegalArgumentException.class)
+    @ResponseBody
+    @ResponseStatus(HttpStatus.BAD_REQUEST)
+    public ErrorResponse handleIllegalArgument(
+            IllegalArgumentException exception) {
+
+        return new ErrorResponse(exception.getMessage());
+    }
 }

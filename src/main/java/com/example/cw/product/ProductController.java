@@ -1,8 +1,7 @@
 package com.example.cw.product;
-import com.example.cw.product.model.Product;
-import com.example.cw.product.model.ProductDTO;
-import com.example.cw.product.model.UpdateProductCommand;
+import com.example.cw.product.model.*;
 import com.example.cw.product.services.*;
+import org.springframework.data.domain.Page;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import jakarta.validation.Valid;
@@ -49,8 +48,28 @@ public class ProductController {
     }
 
     @GetMapping("/products")
-    public ResponseEntity<List<ProductDTO>> getProducts(){
-        return getProductsService.execute( null);
+    public ResponseEntity<ProductPageDTO> getProducts(
+            @RequestParam(required = false) String name,
+            @RequestParam(required = false) Integer categoryId,
+            @RequestParam(required = false) Double minPrice,
+            @RequestParam(required = false) Double maxPrice,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(defaultValue = "id") String sortBy,
+            @RequestParam(defaultValue = "asc") String direction) {
+
+        ProductSearchCriteria criteria = new ProductSearchCriteria(
+                name,
+                categoryId,
+                minPrice,
+                maxPrice,
+                page,
+                size,
+                sortBy,
+                direction
+        );
+
+        return getProductsService.execute(criteria);
     }
 
     @GetMapping("/product/{id}")

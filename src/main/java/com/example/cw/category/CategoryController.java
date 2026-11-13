@@ -1,9 +1,6 @@
-
 package com.example.cw.category;
 
-import com.example.cw.category.model.Category;
-import com.example.cw.category.model.CategoryDTO;
-import com.example.cw.category.model.UpdateCategoryCommand;
+import com.example.cw.category.model.*;
 import com.example.cw.category.services.*;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -50,8 +47,22 @@ public class CategoryController {
     }
 
     @GetMapping("/categories")
-    public ResponseEntity<List<CategoryDTO>> getCategories() {
-        return getCategoriesService.execute(null);
+    public ResponseEntity<CategoryPageDTO> getCategories(
+            @RequestParam(required = false) String name,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(defaultValue = "id") String sortBy,
+            @RequestParam(defaultValue = "asc") String direction) {
+
+        CategorySearchCriteria criteria = new CategorySearchCriteria(
+                name,
+                page,
+                size,
+                sortBy,
+                direction
+        );
+
+        return getCategoriesService.execute(criteria);
     }
 
     @GetMapping("/category/{id}")
