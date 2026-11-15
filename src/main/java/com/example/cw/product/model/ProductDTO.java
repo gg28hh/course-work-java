@@ -10,11 +10,4 @@ public class ProductDTO {
     private Double price;
     private Integer stockQuantity;
 
-    //public ProductDTO(Product product){
-      //this.id = product.getId();
-      //this.name = product.getName();
-      //this.description = product.getDescription();
-      //this.price = product.getPrice();
-      //this.stockQuantity = product.getStockQuantity();
-    //}
 }

@@ -1,6 +1,4 @@
-
 package com.example.cw.category.model;
-
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 

@@ -6,3 +6,4 @@ public class CategoryAlreadyExistsException extends RuntimeException
         super(errorMessage.getMessage());
     }
 }
+

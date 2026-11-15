@@ -5,6 +5,7 @@ public record ProductSearchCriteria(
         Integer categoryId,
         Double minPrice,
         Double maxPrice,
+        Boolean inStock,
         int page,
         int size,
         String sortBy,
