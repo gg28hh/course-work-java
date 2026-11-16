@@ -1,6 +1,8 @@
 package com.example.cw.cart.model;
 
 import jakarta.persistence.*;
+import java.util.ArrayList;
+import java.util.List;
 
 @Entity
 @Table(name = "carts")
@@ -12,6 +14,13 @@ public class Cart {
 
     @Column(name = "user_id", nullable = false, unique = true)
     private Integer userId;
+
+    @OneToMany(
+        mappedBy = "cart",
+        cascade = CascadeType.ALL,
+        orphanRemoval = true
+    )
+    private List<CartItem> items = new ArrayList<>();
 
     protected Cart() {
     }
@@ -26,5 +35,9 @@ public class Cart {
 
     public Integer getUserId() {
         return userId;
+    }
+
+    public List<CartItem> getItems() {
+        return items;
     }
 }
