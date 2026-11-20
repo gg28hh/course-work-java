@@ -241,6 +241,219 @@ class OrderConcurrencyIntegrationTest {
         }
     }
 
+    @Test
+    @Transactional(propagation = Propagation.NOT_SUPPORTED)
+    void onlyOneCheckoutSucceedsWhenTwoUsersBuyTwoLimitedProducts() throws Exception {
+
+        Integer firstUserId = 91234575;
+        Integer secondUserId = 91234576;
+
+        MultiProductScenario scenario = transactionTemplate.execute(status -> {
+
+            assertTrue(cartRepository.findByUserId(firstUserId).isEmpty());
+            assertTrue(cartRepository.findByUserId(secondUserId).isEmpty());
+
+            assertTrue(orderRepository.findByUserId(firstUserId).isEmpty());
+            assertTrue(orderRepository.findByUserId(secondUserId).isEmpty());
+
+            Product firstProduct = new Product();
+
+            firstProduct.setName("Concurrency Product A");
+            firstProduct.setDescription(
+                    "First product for concurrent checkout testing."
+            );
+            firstProduct.setPrice(25.00);
+            firstProduct.setStockQuantity(1);
+
+            entityManager.persist(firstProduct);
+
+            Product secondProduct = new Product();
+
+            secondProduct.setName("Concurrency Product B");
+            secondProduct.setDescription(
+                    "Second product for concurrent checkout testing."
+            );
+            secondProduct.setPrice(40.00);
+            secondProduct.setStockQuantity(1);
+
+            entityManager.persist(secondProduct);
+
+            Cart firstCart = new Cart(firstUserId);
+            Cart secondCart = new Cart(secondUserId);
+
+            entityManager.persist(firstCart);
+            entityManager.persist(secondCart);
+
+            entityManager.persist(
+                    new CartItem(firstCart, firstProduct, 1)
+            );
+
+            entityManager.persist(
+                    new CartItem(firstCart, secondProduct, 1)
+            );
+
+            entityManager.persist(
+                    new CartItem(secondCart, firstProduct, 1)
+            );
+
+            entityManager.persist(
+                    new CartItem(secondCart, secondProduct, 1)
+            );
+
+            entityManager.flush();
+
+            return new MultiProductScenario(
+                    firstProduct.getId(),
+                    secondProduct.getId(),
+                    firstCart.getId(),
+                    secondCart.getId()
+            );
+        });
+
+        assertNotNull(scenario);
+
+        ExecutorService executor = Executors.newFixedThreadPool(2);
+
+        CountDownLatch readyLatch = new CountDownLatch(2);
+        CountDownLatch startLatch = new CountDownLatch(1);
+
+        try {
+
+            try {
+
+                Future<Boolean> firstCheckout = executor.submit(
+                        () -> attemptCheckout(
+                                firstUserId,
+                                readyLatch,
+                                startLatch
+                        )
+                );
+
+                Future<Boolean> secondCheckout = executor.submit(
+                        () -> attemptCheckout(
+                                secondUserId,
+                                readyLatch,
+                                startLatch
+                        )
+                );
+
+                assertTrue(
+                        readyLatch.await(10, TimeUnit.SECONDS)
+                );
+
+                startLatch.countDown();
+
+                boolean firstSucceeded =
+                        firstCheckout.get(30, TimeUnit.SECONDS);
+
+                boolean secondSucceeded =
+                        secondCheckout.get(30, TimeUnit.SECONDS);
+
+                int successfulOrders =
+                        (firstSucceeded ? 1 : 0)
+                                + (secondSucceeded ? 1 : 0);
+
+                assertEquals(1, successfulOrders);
+
+            } finally {
+
+                startLatch.countDown();
+
+                executor.shutdown();
+
+                if (!executor.awaitTermination(15, TimeUnit.SECONDS)) {
+                    executor.shutdownNow();
+                }
+            }
+
+            transactionTemplate.executeWithoutResult(status -> {
+
+                Integer firstStock = jdbcTemplate.queryForObject(
+                        "SELECT stock_quantity FROM product WHERE id = ?",
+                        Integer.class,
+                        scenario.firstProductId()
+                );
+
+                Integer secondStock = jdbcTemplate.queryForObject(
+                        "SELECT stock_quantity FROM product WHERE id = ?",
+                        Integer.class,
+                        scenario.secondProductId()
+                );
+
+                Integer ordersCount = jdbcTemplate.queryForObject(
+                        "SELECT COUNT(*) FROM customer_orders " +
+                                "WHERE user_id IN (?, ?)",
+                        Integer.class,
+                        firstUserId,
+                        secondUserId
+                );
+
+                Integer orderItemsCount = jdbcTemplate.queryForObject(
+                        "SELECT COUNT(*) FROM order_items " +
+                                "WHERE order_id IN " +
+                                "(SELECT id FROM customer_orders " +
+                                "WHERE user_id IN (?, ?))",
+                        Integer.class,
+                        firstUserId,
+                        secondUserId
+                );
+
+                Integer remainingCartItems = jdbcTemplate.queryForObject(
+                        "SELECT COUNT(*) FROM cart_items " +
+                                "WHERE cart_id IN (?, ?)",
+                        Integer.class,
+                        scenario.firstCartId(),
+                        scenario.secondCartId()
+                );
+
+                assertEquals(0, firstStock);
+                assertEquals(0, secondStock);
+                assertEquals(1, ordersCount);
+                assertEquals(2, orderItemsCount);
+                assertEquals(2, remainingCartItems);
+            });
+
+        } finally {
+
+            transactionTemplate.executeWithoutResult(status -> {
+
+                jdbcTemplate.update(
+                        "DELETE FROM order_items WHERE order_id IN " +
+                                "(SELECT id FROM customer_orders " +
+                                "WHERE user_id IN (?, ?))",
+                        firstUserId,
+                        secondUserId
+                );
+
+                jdbcTemplate.update(
+                        "DELETE FROM customer_orders " +
+                                "WHERE user_id IN (?, ?)",
+                        firstUserId,
+                        secondUserId
+                );
+
+                jdbcTemplate.update(
+                        "DELETE FROM cart_items " +
+                                "WHERE cart_id IN (?, ?)",
+                        scenario.firstCartId(),
+                        scenario.secondCartId()
+                );
+
+                jdbcTemplate.update(
+                        "DELETE FROM carts WHERE id IN (?, ?)",
+                        scenario.firstCartId(),
+                        scenario.secondCartId()
+                );
+
+                jdbcTemplate.update(
+                        "DELETE FROM product WHERE id IN (?, ?)",
+                        scenario.firstProductId(),
+                        scenario.secondProductId()
+                );
+            });
+        }
+    }
+
     private boolean attemptCheckout(
             Integer userId,
             CountDownLatch readyLatch,
@@ -280,6 +493,14 @@ class OrderConcurrencyIntegrationTest {
 
     private record TestScenario(
             Integer productId,
+            Integer firstCartId,
+            Integer secondCartId
+    ) {
+    }
+
+    private record MultiProductScenario(
+            Integer firstProductId,
+            Integer secondProductId,
             Integer firstCartId,
             Integer secondCartId
     ) {
